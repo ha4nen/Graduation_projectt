@@ -14,9 +14,15 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django.http import JsonResponse
 from django.contrib import admin
-from django.urls import path
+from django.urls import path,include
+
+def home_view(request):
+    return JsonResponse({"message": "Welcome to Outfitly API!"})
 
 urlpatterns = [
+    path('', home_view), 
     path('admin/', admin.site.urls),
+    path('api/', include('Outfitly_app.urls')),
 ]
