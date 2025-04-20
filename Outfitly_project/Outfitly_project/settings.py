@@ -40,6 +40,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'Outfitly_app',
     'rest_framework',
+    'corsheaders',
+
 ]
 
 MIDDLEWARE = [
@@ -50,6 +52,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+
 ]
 
 ROOT_URLCONF = 'Outfitly_project.urls'
@@ -80,7 +84,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',  # Correct
         'NAME': 'outfitly_data',
-        'USER': 'mazen',
+        'USER': 'hnm',
         'PASSWORD': 'hnm12345',
         'HOST': 'localhost',  # Or your server IP if remote
         'PORT': '5432',  # Default PostgreSQL port   
@@ -164,3 +168,5 @@ JAZZMIN_UI_TWEAKS = {
         "success": "btn-success"
     }
 }
+
+CORS_ALLOW_ALL_ORIGINS = True  # Allow all for dev, restrict in prod
