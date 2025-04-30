@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from .models import Follow, Like, Post, Wardrobe, Outfit, OutfitPlanner, UserProfile
 from .serializers import PostSerializer, WardrobeSerializer, OutfitSerializer, OutfitPlannerSerializer, UserProfileSerializer
@@ -9,6 +9,7 @@ from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
 import json
 import re
+from rest_framework.authtoken.models import Token
 
 def is_valid_email(email):
     return re.match(r"[^@]+@[^@]+\.[^@]+", email)
@@ -23,6 +24,7 @@ def is_complex_password(password):
 
 # ✅ Register a new user
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def register_user(request):
     username = request.data.get('username', '').strip().lower() 
     email = request.data.get('email', '').strip().lower()
@@ -43,14 +45,18 @@ def register_user(request):
     if User.objects.filter(email=email).exists():
         return Response({'error': 'Email already registered'}, status=status.HTTP_400_BAD_REQUEST)
 
-    user = User.objects.create_user(username=username.lower(), email=email.lower(), password=password)
-    UserProfile.objects.create(user=user)  # ✅ Automatically create UserProfile
-    return Response({'message': 'User registered successfully'}, status=status.HTTP_201_CREATED)
+    user = User.objects.create_user(username=username, email=email, password=password)
+    UserProfile.objects.create(user=user)  # Create associated profile
+    token, _ = Token.objects.get_or_create(user=user)
 
-# ✅ Log in a user
+    return Response({'message': 'User registered successfully', 'token': token.key, 'user_id': user.id}, status=status.HTTP_201_CREATED)
+
+
+# ✅ Login and return token
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def login_user(request):
-    identifier = request.data.get('username')  # Can be email or username
+    identifier = request.data.get('username')  # can be username or email
     password = request.data.get('password')
 
     if not identifier or not password:
@@ -58,41 +64,54 @@ def login_user(request):
 
     identifier = identifier.strip()
 
-    # Try email first
     try:
         user_obj = User.objects.get(email__iexact=identifier)
         username = user_obj.username
     except User.DoesNotExist:
-        # Try username (THIS LINE WAS WRONG BEFORE)
         try:
-            user_obj = User.objects.get(username__iexact=identifier)  # ✅ CORRECTED!
+            user_obj = User.objects.get(username__iexact=identifier)
             username = user_obj.username
         except User.DoesNotExist:
             return Response({'error': 'No account found with that email or username'}, status=status.HTTP_404_NOT_FOUND)
 
-    # Authenticate
     user = authenticate(username=username, password=password)
-    if user is not None:
-        return Response({'message': 'Login successful', 'user_id': user.id}, status=status.HTTP_200_OK)
+    if user:
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({'message': 'Login successful', 'token': token.key, 'user_id': user.id}, status=status.HTTP_200_OK)
     else:
         return Response({'error': 'Incorrect password'}, status=status.HTTP_401_UNAUTHORIZED)
 
-# ✅ Update user profile (gender, modesty_preference, profile picture)
-@api_view(['PUT'])
-def update_user_profile(request, user_id):
-    try:
-        profile = UserProfile.objects.get(user_id=user_id)
-        data = request.data
 
-        profile.gender = data.get('gender', profile.gender)
-        profile.modesty_preference = data.get('modesty_preference', profile.modesty_preference)
-        if 'profile_picture' in request.FILES:
-            profile.profile_picture = request.FILES['profile_picture']
+# ✅ Get profile for logged-in user
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_profile(request):
+    try:
+        profile = request.user.profile
+        serializer = UserProfileSerializer(profile)
+        return Response(serializer.data)
+    except UserProfile.DoesNotExist:
+        return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+# ✅ Update profile for logged-in user
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_user_profile(request):
+    try:
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+        profile.bio = request.data.get('bio', profile.bio)
+        profile.location = request.data.get('location', profile.location)
+        profile.gender = request.data.get('gender', profile.gender)
+        profile.modesty_preference = request.data.get('modesty_preference', profile.modesty_preference)
 
         profile.save()
-        return Response({'message': 'Profile updated successfully'})
-    except UserProfile.DoesNotExist:
-        return Response({'error': 'User profile not found'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = UserProfileSerializer(profile)
+        return Response(serializer.data)
+    except Exception as e:
+        print("Error:", str(e))
+        return Response({'error': 'Something went wrong'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # ✅ Upload Clothing Item (User can add clothes)
 @api_view(['POST'])

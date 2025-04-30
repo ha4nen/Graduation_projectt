@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-8cftl3nn=uf$^fjc@ch9h&l15vj_-9$%&+r35(rah_q9*$1gsl
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'Outfitly_app',
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
 
 ]
@@ -170,3 +171,12 @@ JAZZMIN_UI_TWEAKS = {
 }
 
 CORS_ALLOW_ALL_ORIGINS = True  # Allow all for dev, restrict in prod
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ]
+}

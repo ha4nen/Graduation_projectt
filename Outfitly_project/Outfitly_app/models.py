@@ -1,19 +1,28 @@
 from django.db import models
 from django.contrib.auth.models import User
 
-# ✅ User Profile
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
+    
     gender = models.CharField(
         max_length=10,
         choices=[('male', 'Male'), ('female', 'Female')]
     )
+    
     modesty_preference = models.CharField(
         max_length=20,
-        choices=[('None', 'None'), ('Hijab-Friendly', 'Hijab-Friendly'), ('Modest', 'Modest')],
+        choices=[
+            ('None', 'None'),
+            ('Hijab-Friendly', 'Hijab-Friendly')
+        ],
         default='None'
     )
+    
     profile_picture = models.ImageField(upload_to="profile_pics/", blank=True, null=True)
+
+    # New fields
+    bio = models.TextField(blank=True, null=True, max_length=500)
+    location = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username}'s Profile"

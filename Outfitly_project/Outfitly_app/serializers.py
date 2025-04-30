@@ -12,15 +12,19 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email']
 
 
-# ✅ UserProfile Serializer
 class UserProfileSerializer(serializers.ModelSerializer):
-    user = UserSerializer(read_only=True)
+    username = serializers.CharField(source='user.username', read_only=True)
 
     class Meta:
         model = UserProfile
-        fields = ['user', 'gender', 'modesty_preference', 'profile_picture']
-
-
+        fields = [
+            'username',
+            'gender',
+            'modesty_preference',
+            'profile_picture',
+            'bio',
+            'location',
+        ]
 # ✅ Category Serializer
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:

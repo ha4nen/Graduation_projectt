@@ -10,8 +10,8 @@ from .views import (
 urlpatterns = [
     path('register/', register_user, name='register_user'),
     path('login/', login_user, name='login_user'),
-    path('profile/<int:user_id>/', get_user_profile, name='get_user_profile'),
-    path('profile/update/<int:user_id>/', update_user_profile, name='update_user_profile'),
+    path('profile/', get_user_profile, name='get_user_profile'),
+    path('profile/update/', update_user_profile, name='update_user_profile'),
 
     # Wardrobe APIs
     path('wardrobe/upload/', upload_clothing, name='upload_clothing'),
