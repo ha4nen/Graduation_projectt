@@ -105,6 +105,9 @@ def update_user_profile(request):
         profile.location = request.data.get('location', profile.location)
         profile.gender = request.data.get('gender', profile.gender)
         profile.modesty_preference = request.data.get('modesty_preference', profile.modesty_preference)
+        # ✅ Handle profile picture if included
+        if 'profile_picture' in request.FILES:
+            profile.profile_picture = request.FILES['profile_picture']
 
         profile.save()
         serializer = UserProfileSerializer(profile)
