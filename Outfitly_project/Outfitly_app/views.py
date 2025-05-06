@@ -3,13 +3,16 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
-from .models import Follow, Like, Post, Wardrobe, Outfit, OutfitPlanner, UserProfile
-from .serializers import PostSerializer, WardrobeSerializer, OutfitSerializer, OutfitPlannerSerializer, UserProfileSerializer
+from .models import Follow, Like, Post, Wardrobe, Outfit, OutfitPlanner, UserProfile , Category, SubCategory
+from .serializers import CategoryWithSubSerializer, PostSerializer, WardrobeSerializer, OutfitSerializer, OutfitPlannerSerializer, UserProfileSerializer,CategorySerializer, SubCategorySerializer
 from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
 import json
 import re
 from rest_framework.authtoken.models import Token
+from rest_framework import viewsets
+from rest_framework.views import APIView
+
 
 def is_valid_email(email):
     return re.match(r"[^@]+@[^@]+\.[^@]+", email)
@@ -116,15 +119,31 @@ def update_user_profile(request):
         print("Error:", str(e))
         return Response({'error': 'Something went wrong'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategoryWithSubSerializer  # Updated here
+
+class SubCategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = SubCategory.objects.all()
+    serializer_class = SubCategorySerializer
+
+class SubCategoryByCategoryView(APIView):
+    def get(self, request, category_id):
+        subcategories = SubCategory.objects.filter(category_id=category_id)
+        serializer = SubCategorySerializer(subcategories, many=True)
+        return Response(serializer.data)
+    
 # ✅ Upload Clothing Item (User can add clothes)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def upload_clothing(request):
-    """Uploads clothing to the user's wardrobe"""
+    print("DATA:", request.data)
+    print("FILES:", request.FILES)
     serializer = WardrobeSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save(user=request.user)  # Associate with the logged-in user
+        serializer.save(user=request.user)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+    print("ERRORS:", serializer.errors)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # ✅ Get All Wardrobe Items (User's Clothes)

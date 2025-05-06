@@ -30,7 +30,7 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'name']
-
+        
 
 # ✅ SubCategory Serializer
 class SubCategorySerializer(serializers.ModelSerializer):
@@ -42,6 +42,15 @@ class SubCategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = SubCategory
         fields = ['id', 'name', 'category', 'category_id']
+        
+# ✅ Updated Category Serializer with subcategories
+class CategoryWithSubSerializer(serializers.ModelSerializer):
+    subcategories = SubCategorySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'subcategories']
+
 
 
 # ✅ Wardrobe Serializer
