@@ -3,8 +3,8 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
-from .models import Follow, Like, Post, Wardrobe, Outfit, OutfitPlanner, UserProfile
-from .serializers import PostSerializer, WardrobeSerializer, OutfitSerializer, OutfitPlannerSerializer, UserProfileSerializer
+from .models import Category, Follow, Like, Post, SubCategory, Wardrobe, Outfit, OutfitPlanner, UserProfile
+from .serializers import PostSerializer, SubCategorySerializer, WardrobeSerializer, OutfitSerializer, OutfitPlannerSerializer, UserProfileSerializer
 from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
 import json
@@ -150,6 +150,37 @@ def update_clothing(request, item_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Wardrobe.DoesNotExist:
         return Response({'error': 'Clothing item not found'}, status=status.HTTP_404_NOT_FOUND)
+    # ✨ NEW: Get Wardrobe Items by SubCategory ✨
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def get_wardrobe_by_subcategory(request, subcategory_id):
+    """Retrieves wardrobe items for the logged-in user filtered by subcategory"""
+    try:
+        # Check if subcategory exists (optional, but good practice)
+        subcategory = SubCategory.objects.get(id=subcategory_id)
+        items = Wardrobe.objects.filter(user=request.user, subcategory_id=subcategory_id)
+        serializer = WardrobeSerializer(items, many=True)
+        return Response(serializer.data)
+    except SubCategory.DoesNotExist:
+        return Response({"error": "SubCategory not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    # ✨ NEW: Get SubCategories by Category ✨
+@api_view(["GET"])
+@permission_classes([IsAuthenticated]) # Or AllowAny if subcategories are public
+def get_subcategories_by_category(request, category_id):
+    """Retrieves all subcategories belonging to a specific category"""
+    try:
+        # Ensure the category exists
+        category = Category.objects.get(id=category_id)
+        subcategories = SubCategory.objects.filter(category_id=category_id)
+        serializer = SubCategorySerializer(subcategories, many=True)
+        return Response(serializer.data)
+    except Category.DoesNotExist:
+        return Response({"error": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"Error in get_subcategories_by_category: {e}")
+        return Response({"error": "An internal error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # ✅ Create an Outfit (User Selects Clothes)
 @api_view(['POST'])
