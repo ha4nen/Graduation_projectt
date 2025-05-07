@@ -166,7 +166,7 @@ class LikeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Like
-        fields = '__all__'
+        fields = '_all_'
 
 # ✅ Follow Serializer
 class FollowSerializer(serializers.ModelSerializer):
@@ -175,4 +175,4 @@ class FollowSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Follow
-        fields = '__all__'
+        fields = '_all_'
