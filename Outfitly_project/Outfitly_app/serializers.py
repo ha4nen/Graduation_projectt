@@ -12,84 +12,81 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'email']
 
 
-# ✅ User Profile Serializer
 class UserProfileSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
-    
+
     class Meta:
         model = UserProfile
-        fields = ["username", "gender", "modesty_preference", "profile_picture", "bio", "location"]
-
-
+        fields = [
+            'username',
+            'gender',
+            'modesty_preference',
+            'profile_picture',
+            'bio',
+            'location',
+        ]
 # ✅ Category Serializer
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ["id", "name"]
-
+        fields = ['id', 'name']
+        
 
 # ✅ SubCategory Serializer
 class SubCategorySerializer(serializers.ModelSerializer):
-    # Include category name and ID for context
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    category_id = serializers.IntegerField(source='category.id', read_only=True)  # Read-only ID
+    category = CategorySerializer(read_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=Category.objects.all(), source='category', write_only=True
+    )
 
     class Meta:
         model = SubCategory
-        fields = ["id", "name", "category_id", "category_name"]
+        fields = ['id', 'name', 'category', 'category_id']
+        
+# ✅ Updated Category Serializer with subcategories haneenn
+class CategoryWithSubSerializer(serializers.ModelSerializer):
+    subcategories = SubCategorySerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Category
+        fields = ['id', 'name', 'subcategories']
+
 
 
 # ✅ Wardrobe Serializer
 class WardrobeSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
     category = CategorySerializer(read_only=True)
-    subcategory = SubCategorySerializer(read_only=True)
-
-    # Keep PrimaryKeyRelatedField for write operations
     category_id = serializers.PrimaryKeyRelatedField(
-        queryset=Category.objects.all(), source="category", write_only=True, required=False, allow_null=True
+        queryset=Category.objects.all(), source='category', write_only=True
     )
+    subcategory = SubCategorySerializer(read_only=True)
     subcategory_id = serializers.PrimaryKeyRelatedField(
-        queryset=SubCategory.objects.all(), source="subcategory", write_only=True, allow_null=True, required=False
+        queryset=SubCategory.objects.all(), source='subcategory', write_only=True, allow_null=True, required=False
     )
 
     class Meta:
         model = Wardrobe
         fields = [
-            "id", "user", 
-            "category", "category_id", 
-            "subcategory", "subcategory_id",
-            "color", "size", "material", "season", "tags", "photo_path"
+            'id', 'user', 'category', 'category_id', 'subcategory', 'subcategory_id',
+            'color', 'size', 'material', 'season', 'tags', 'photo_path'
         ]
-        read_only_fields = ["user", "category", "subcategory"]
-
-    def validate(self, data):
-        # Simplified validation - rely on read_only_fields for nested, use IDs for writing
-        return data
 
 
 # ✅ Outfit Serializer
 class OutfitSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
-    selected_items = WardrobeSerializer(many=True, read_only=True)
-    selected_item_ids = serializers.PrimaryKeyRelatedField(
-        queryset=Wardrobe.objects.all(), 
-        many=True, 
-        write_only=True, 
-        source='selected_items'
+    selected_items = WardrobeSerializer(read_only=True, many=True)
+    selected_items_ids = serializers.PrimaryKeyRelatedField(
+        queryset=Wardrobe.objects.all(), many=True, write_only=True, source='selected_items'
     )
 
     class Meta:
         model = Outfit
-        fields = ["id", "user", "type", "selected_items", "selected_item_ids", "is_hijab_friendly", "description", "photo_path"]
-        read_only_fields = ["user", "selected_items"]
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        request = self.context.get('request', None)
-        if request and hasattr(request, 'user') and request.user.is_authenticated:
-            # Filter items selectable for outfits to the current user's wardrobe
-            self.fields['selected_item_ids'].queryset = Wardrobe.objects.filter(user=request.user)
+        fields = [
+            'id', 'user', 'type', 'selected_items', 'selected_items_ids',
+            'is_hijab_friendly', 'description', 'photo_path'
+        ]
 
 
 # ✅ OutfitPlanner Serializer
@@ -142,3 +139,40 @@ class FollowSerializer(serializers.ModelSerializer):
     class Meta:
         model = Follow
         fields = ['id', 'follower', 'following', 'following_id', 'created_at']
+
+from .models import Post, Like, Follow
+
+# ✅ Post Serializer
+class PostSerializer(serializers.ModelSerializer):
+    like_count = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Post
+        fields = ['id', 'user', 'content', 'image', 'created_at', 'like_count', 'is_liked']
+
+    def get_like_count(self, obj):
+        return obj.likes.count()
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            return obj.likes.filter(user=request.user).exists()
+        return False
+
+# ✅ Like Serializer
+class LikeSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Like
+        fields = '_all_'
+
+# ✅ Follow Serializer
+class FollowSerializer(serializers.ModelSerializer):
+    follower = UserSerializer(read_only=True)
+    following = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Follow
+        fields = '_all_'
