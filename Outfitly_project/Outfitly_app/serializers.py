@@ -43,7 +43,7 @@ class SubCategorySerializer(serializers.ModelSerializer):
         model = SubCategory
         fields = ['id', 'name', 'category', 'category_id']
         
-# ✅ Updated Category Serializer with subcategories haneenn
+# ✅ Updated Category Serializer with subcategories
 class CategoryWithSubSerializer(serializers.ModelSerializer):
     subcategories = SubCategorySerializer(many=True, read_only=True)
 
