@@ -12,6 +12,8 @@ import re
 from rest_framework.authtoken.models import Token
 from rest_framework import viewsets
 from rest_framework.views import APIView
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.decorators import api_view, permission_classes, parser_classes
 
 
 def is_valid_email(email):
@@ -150,8 +152,11 @@ def upload_clothing(request):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_wardrobe(request):
-    """Retrieves all wardrobe items for the logged-in user"""
+    print(f"🔍 Authenticated user: {request.user} (ID: {request.user.id})")
     items = Wardrobe.objects.filter(user=request.user)
+    print(f"🧥 Found {items.count()} items for user {request.user.username}")
+    for item in items:
+        print(f"🧢 Item: {item.id}, Category: {item.category}, Photo: {item.photo_path}")
     serializer = WardrobeSerializer(items, many=True)
     return Response(serializer.data)
 
@@ -173,11 +178,13 @@ def update_clothing(request, item_id):
 # ✅ Create an Outfit (User Selects Clothes)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])
 def create_outfit(request):
-    """Allows users to create outfits manually by selecting items from their wardrobe"""
-    serializer = OutfitSerializer(data=request.data)
+    """Allows users to create outfits manually by selecting items from their wardrobe."""
+    serializer = OutfitSerializer(data=request.data, context={'request': request})
+
     if serializer.is_valid():
-        outfit = serializer.save(user=request.user)  # Associate with the user
+        outfit = serializer.save(user=request.user)  # Automatically associate with logged-in user
         return Response(OutfitSerializer(outfit).data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

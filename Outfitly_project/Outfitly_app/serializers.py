@@ -85,7 +85,7 @@ class OutfitSerializer(serializers.ModelSerializer):
         model = Outfit
         fields = [
             'id', 'user', 'type', 'selected_items', 'selected_items_ids',
-            'is_hijab_friendly', 'description', 'photo_path'
+            'is_hijab_friendly', 'description', 'photo_path' , 'season', 'tags'
         ]
 
 
