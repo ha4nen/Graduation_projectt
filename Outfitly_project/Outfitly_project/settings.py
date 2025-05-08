@@ -42,7 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
-
+ 
 ]
 
 MIDDLEWARE = [
@@ -85,7 +85,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',  # Correct
         'NAME': 'outfitly_data',
-        'USER': 'hnm',
+        'USER': 'mazen',
         'PASSWORD': 'hnm12345',
         'HOST': 'localhost',  # Or your server IP if remote
         'PORT': '5432',  # Default PostgreSQL port   
