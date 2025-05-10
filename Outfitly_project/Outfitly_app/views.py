@@ -1,4 +1,6 @@
+from urllib import request
 from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -153,7 +155,15 @@ def upload_clothing(request):
 @permission_classes([IsAuthenticated])
 def get_wardrobe(request):
     print(f"🔍 Authenticated user: {request.user} (ID: {request.user.id})")
+    subcategory_id = request.query_params.get('subcategory_id')
+    category_id = request.query_params.get('category_id')
+
     items = Wardrobe.objects.filter(user=request.user)
+
+    if subcategory_id:
+        items = items.filter(subcategory_id=subcategory_id)
+    elif category_id:
+        items = items.filter(category_id=category_id)
     print(f"🧥 Found {items.count()} items for user {request.user.username}")
     for item in items:
         print(f"🧢 Item: {item.id}, Category: {item.category}, Photo: {item.photo_path}")
@@ -174,6 +184,13 @@ def update_clothing(request, item_id):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Wardrobe.DoesNotExist:
         return Response({'error': 'Clothing item not found'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_clothing(request, item_id):
+    item = get_object_or_404(Wardrobe, id=item_id, user=request.user)
+    item.delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
 
 # ✅ Create an Outfit (User Selects Clothes)
 @api_view(['POST'])
