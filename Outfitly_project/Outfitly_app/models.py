@@ -82,6 +82,16 @@ class Outfit(models.Model):
     is_hijab_friendly = models.BooleanField(default=False)
     description = models.TextField(blank=True, null=True)
     photo_path = models.ImageField(upload_to="outfits/", blank=True, null=True)
+      # ✅ New additions
+    SEASON_CHOICES = [
+        ('Winter', 'Winter'),
+        ('Spring', 'Spring'),
+        ('Summer', 'Summer'),
+        ('Autumn', 'Autumn'),
+        ('All-Season', 'All-Season'),
+    ]
+    season = models.CharField(max_length=15, choices=SEASON_CHOICES, default='All-Season')
+    tags = models.TextField(blank=True, null=True)
 
     def __str__(self):
         return f"Outfit {self.pk} - {self.type}"
