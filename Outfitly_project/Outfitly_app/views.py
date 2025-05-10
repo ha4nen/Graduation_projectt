@@ -197,6 +197,16 @@ def get_outfits(request):
     serializer = OutfitSerializer(outfits, many=True)
     return Response(serializer.data)
 
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_outfit(request, pk):
+    try:
+        outfit = Outfit.objects.get(pk=pk, user=request.user)
+        outfit.delete()
+        return Response(status=204)
+    except Outfit.DoesNotExist:
+        return Response({'error': 'Outfit not found'}, status=404)
+
 # ✅ AI Generates an Outfit (Basic API Placeholder)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

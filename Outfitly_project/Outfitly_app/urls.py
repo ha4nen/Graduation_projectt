@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (
     SubCategoryByCategoryView, register_user, login_user, get_user_profile, update_user_profile,
     upload_clothing, get_wardrobe, update_clothing,
-    create_outfit, get_outfits, ai_generate_outfit,
+    create_outfit, get_outfits,delete_outfit, ai_generate_outfit,
     plan_outfit, get_planned_outfits,
     create_post, get_all_posts, toggle_like_post, toggle_follow, get_following_feed
 )
@@ -27,6 +27,7 @@ urlpatterns = [
     path('outfits/create/', create_outfit, name='create_outfit'),
     path('outfits/', get_outfits, name='get_outfits'),
     path('outfits/ai-generate/', ai_generate_outfit, name='ai_generate_outfit'),
+    path('outfits/<int:pk>/', delete_outfit, name='delete_outfit'),
 
     # Outfit Planner APIs
     path('planner/', get_planned_outfits, name='get_planned_outfits'),
