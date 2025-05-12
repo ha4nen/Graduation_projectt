@@ -260,15 +260,29 @@ def update_planned_outfit(request, plan_id):
     
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
+@parser_classes([MultiPartParser, FormParser])  # Optional, but helpful if you still allow image upload
 def create_post(request):
-    """Create a new post with an outfit"""
+    """Create a new post with an outfit and optionally an image"""
     outfit_id = request.data.get('outfit_id')
     caption = request.data.get('caption', '')
 
     try:
         outfit = Outfit.objects.get(id=outfit_id, user=request.user)
-        post = Post.objects.create(user=request.user, outfit=outfit, caption=caption)
+
+        # If image was not uploaded, use the outfit photo
+        image = request.FILES.get('image')
+        if image is None:
+            image = outfit.photo_path
+
+        post = Post.objects.create(
+            user=request.user,
+            outfit=outfit,
+            caption=caption,
+            image=image  # Assign outfit's image if image was None
+        )
+
         return Response(PostSerializer(post).data, status=status.HTTP_201_CREATED)
+
     except Outfit.DoesNotExist:
         return Response({'error': 'Outfit not found or not owned by user'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -349,3 +363,20 @@ def get_subcategories_by_category(request, category_id):
     except Exception as e:
         print(f"Error in get_subcategories_by_category: {e}")
         return Response({"error": "An internal error occurred"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_all_posts(request):
+    posts = Post.objects.all().order_by('-created_at')
+    response_data = []
+    for post in posts:
+        serialized_post = PostSerializer(post).data
+        serialized_post['is_liked_by_current_user'] = Like.objects.filter(post=post, user=request.user).exists()
+        serialized_post['like_count'] = post.likes.count()
+        serialized_post['user'] = {
+            'id': post.user.id,
+            'username': post.user.username,
+        }
+        response_data.append(serialized_post)
+
+    return Response(response_data, status=status.HTTP_200_OK)

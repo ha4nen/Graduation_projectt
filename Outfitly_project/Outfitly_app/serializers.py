@@ -102,18 +102,25 @@ class OutfitPlannerSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'outfit', 'outfit_id', 'date']
 
 
-# ✅ Post Serializer
+# ✅ KEEP THIS ONE ONLY
 class PostSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)
     outfit = OutfitSerializer(read_only=True)
     outfit_id = serializers.PrimaryKeyRelatedField(
-        queryset=Outfit.objects.all(), source='outfit', write_only=True
+        queryset=Outfit.objects.all(), source='outfit', write_only=True, required=False
     )
 
     class Meta:
         model = Post
-        fields = ['id', 'user', 'outfit', 'outfit_id', 'caption', 'created_at']
-
+        fields = [
+            'id',
+            'user',
+            'outfit',
+            'outfit_id',
+            'image',
+            'caption',
+            'created_at'
+        ]
 
 # ✅ Like Serializer
 class LikeSerializer(serializers.ModelSerializer):
@@ -141,24 +148,6 @@ class FollowSerializer(serializers.ModelSerializer):
         fields = ['id', 'follower', 'following', 'following_id', 'created_at']
 
 from .models import Post, Like, Follow
-
-# ✅ Post Serializer
-class PostSerializer(serializers.ModelSerializer):
-    like_count = serializers.SerializerMethodField()
-    is_liked = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Post
-        fields = ['id', 'user', 'content', 'image', 'created_at', 'like_count', 'is_liked']
-
-    def get_like_count(self, obj):
-        return obj.likes.count()
-
-    def get_is_liked(self, obj):
-        request = self.context.get('request')
-        if request and hasattr(request, 'user'):
-            return obj.likes.filter(user=request.user).exists()
-        return False
 
 # ✅ Like Serializer
 class LikeSerializer(serializers.ModelSerializer):
