@@ -215,21 +215,6 @@ def get_wardrobe(request):
     return Response(serializer.data)
 
 
-# ✅ Update Clothing Item
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
-def update_clothing(request, item_id):
-    """Allows users to edit details of a wardrobe item"""
-    try:
-        item = Wardrobe.objects.get(id=item_id, user=request.user)
-        serializer = WardrobeSerializer(instance=item, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    except Wardrobe.DoesNotExist:
-        return Response({'error': 'Clothing item not found'}, status=status.HTTP_404_NOT_FOUND)
-
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_clothing(request, item_id):
@@ -299,27 +284,15 @@ def get_planned_outfits(request):
 
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
-def delete_planned_outfit(request, plan_id):
+def delete_planned_outfit(request, pk):
     try:
-        plan = OutfitPlanner.objects.get(id=plan_id, user=request.user)
+        plan = OutfitPlanner.objects.get(pk=pk, user=request.user)
         plan.delete()
-        return Response({'message': 'Planned outfit deleted successfully'}, status=200)
+        return Response(status=204)
     except OutfitPlanner.DoesNotExist:
         return Response({'error': 'Planned outfit not found'}, status=404)
 
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
-def update_planned_outfit(request, plan_id):
-    try:
-        plan = OutfitPlanner.objects.get(id=plan_id, user=request.user)
-        serializer = OutfitPlannerSerializer(plan, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=400)
-    except OutfitPlanner.DoesNotExist:
-        return Response({'error': 'Planned outfit not found'}, status=404)
-    
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser])  # Optional, but helpful if you still allow image upload
@@ -454,3 +427,13 @@ def get_all_posts(request):
         response_data.append(serialized_post)
 
     return Response(response_data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_outfit_by_id(request, pk):
+    try:
+        outfit = Outfit.objects.get(pk=pk)
+        serializer = OutfitSerializer(outfit)
+        return Response(serializer.data)
+    except Outfit.DoesNotExist:
+        return Response({'error': 'Outfit not found'}, status=404)
