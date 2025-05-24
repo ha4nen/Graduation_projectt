@@ -4,7 +4,7 @@ from .views import (
     upload_clothing, get_wardrobe,get_wardrobe_by_user,get_outfits_by_user,delete_planned_outfit,
     create_outfit, get_outfits,delete_outfit, delete_clothing, ai_generate_outfit,
     plan_outfit, get_planned_outfits,delete_post,get_user_profile_by_id,get_outfit_by_id,
-    create_post, get_all_posts, toggle_like_post, toggle_follow, get_following_feed
+    create_post, get_all_posts, toggle_like_post, toggle_follow, get_combined_feed,search_users,get_followers,get_following
 )
 from rest_framework.routers import DefaultRouter
 from .views import CategoryViewSet, SubCategoryViewSet
@@ -48,7 +48,12 @@ urlpatterns = [
     path('feed/posts/<int:post_id>/delete/', delete_post, name='delete_post'),
 
     path('feed/follow/<int:user_id>/', toggle_follow, name='toggle_follow'),
-    path('feed/following/', get_following_feed, name='get_following_feed'),
+    path('feed/combined/', get_combined_feed, name='get_combined_feed'),
+    path('feed/followers/<int:user_id>/', get_followers, name='get_followers'),
+    path('feed/following/<int:user_id>/', get_following, name='get_following'),
+
+    path('users/search/', search_users, name='search_users'),
+
     path('categories/<int:category_id>/subcategories/', SubCategoryByCategoryView.as_view(), name='subcategories_by_category'),
 
 ]

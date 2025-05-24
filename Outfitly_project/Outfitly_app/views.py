@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 from .models import Follow, Like, Post, Wardrobe, Outfit, OutfitPlanner, UserProfile , Category, SubCategory
-from .serializers import CategoryWithSubSerializer, PostSerializer, WardrobeSerializer, OutfitSerializer, OutfitPlannerSerializer, UserProfileSerializer,CategorySerializer, SubCategorySerializer
+from .serializers import CategoryWithSubSerializer, PostSerializer, WardrobeSerializer, OutfitSerializer, OutfitPlannerSerializer, UserProfileSerializer,CategorySerializer, SubCategorySerializer, UserSerializer
 from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
 import json
@@ -16,6 +16,7 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.decorators import api_view, permission_classes, parser_classes
+from django.db import models
 
 
 def is_valid_email(email):
@@ -95,7 +96,7 @@ def login_user(request):
 def get_user_profile(request):
     try:
         profile = request.user.profile
-        serializer = UserProfileSerializer(profile)
+        serializer = UserProfileSerializer(profile, context={'request': request})
         return Response(serializer.data)
     except UserProfile.DoesNotExist:
         return Response({'error': 'Profile not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -106,7 +107,7 @@ def get_user_profile_by_id(request, user_id):
     try:
         user = User.objects.get(pk=user_id)
         profile = UserProfile.objects.get(user__id=user_id)
-        serializer = UserProfileSerializer(profile)
+        serializer = UserProfileSerializer(profile, context={'request': request})
         return Response(serializer.data)
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=404)
@@ -357,6 +358,7 @@ def toggle_like_post(request, post_id):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def toggle_follow(request, user_id):
+    print(f"Follow endpoint hit by user {request.user.id} for target {user_id}")  # ADD THIS
     """Follow or unfollow a user"""
     try:
         to_follow = User.objects.get(id=user_id)
@@ -373,12 +375,57 @@ def toggle_follow(request, user_id):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def get_following_feed(request):
-    """Get posts only from followed users"""
-    following_users = Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
-    posts = Post.objects.filter(user_id__in=following_users).order_by('-created_at')
-    serializer = PostSerializer(posts, many=True)
+def get_combined_feed(request):
+    """Get combined feed: following posts first, then discover posts"""
+    following_ids = Follow.objects.filter(follower=request.user).values_list('following_id', flat=True)
+
+    # Posts from users the current user follows
+    following_posts = Post.objects.filter(models.Q(user_id__in=following_ids) | models.Q(user=request.user)).order_by('-created_at')
+
+    # Discover posts: users not followed and not the user themselves
+    discover_posts = Post.objects.exclude(user_id__in=following_ids).exclude(user=request.user).order_by('-created_at')[:20]
+
+    serializer_following = PostSerializer(following_posts, many=True, context={'request': request})
+    serializer_discover = PostSerializer(discover_posts, many=True, context={'request': request})
+
+
+    return Response({
+        'following': serializer_following.data,
+        'discover': serializer_discover.data,
+        'has_following': following_posts.exists()
+    })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_followers(request, user_id):
+    followers = Follow.objects.filter(following_id=user_id).select_related('follower__profile')
+    profiles = [f.follower.profile for f in followers]
+    serializer = UserProfileSerializer(profiles, many=True, context={'request': request})
     return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_following(request, user_id):
+    following = Follow.objects.filter(follower_id=user_id).select_related('following__profile')
+    profiles = [f.following.profile for f in following]
+    serializer = UserProfileSerializer(profiles, many=True, context={'request': request})
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def search_users(request):
+    """Search users by username"""
+    query = request.GET.get('q', '')
+    if not query:
+        return Response({'error': 'Search query required'}, status=400)
+
+    users = User.objects.filter(username__icontains=query).exclude(id=request.user.id)
+    serializer = UserSerializer(users, many=True)
+    return Response(serializer.data)
+
+
 # ✨ NEW: Get Wardrobe Items by SubCategory ✨
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
